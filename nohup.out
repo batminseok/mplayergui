@@ -1,0 +1,26 @@
+  File "mplayergui.py", line 23
+    def createPlaylist();
+                        ^
+SyntaxError: invalid syntax
+  File "mplayergui.py", line 23
+    def createPlaylist();
+                        ^
+SyntaxError: invalid syntax
+started
+None
+started
+started
+playing
+forward button pressed
+playing
+forward button pressed
+playing
+forward button pressed
+playing
+started
+playing
+playing
+forward button pressed
+forward button pressed
+forward button pressed
+forward button pressed
