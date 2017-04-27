@@ -17,7 +17,7 @@ from mutagen.id3 import ID3
 
 started = 0 #for keeping track of start or not
 songNumber = 0 #for keeping track of place in playlist
-paused = 0
+paused = False
 
 songlist = []
 
@@ -92,6 +92,8 @@ class nowPlaying(tk.Frame):
         frame = tk.Frame.__init__(self, parent)
         self.controller = controller
         
+        self.seconds = 0
+        
         self.configure(background = 'white')
 
         self.switchbutton = tk.Button(self, height = 100, width = 100, highlightthickness = 0, bd = 0, bg = 'white',
@@ -117,14 +119,21 @@ class nowPlaying(tk.Frame):
         s.theme_use('alt')
         s.configure("TProgressbar", foreground = 'white', background = 'white', troughcolor = 'gray27', thickness = 5,)
         self.progressBar = ttk.Progressbar(self, style = "TProgressbar", orient = "horizontal", 
-		                       length = 420, mode = "determinate", maximum = 100)
+		                       length = 350, mode = "determinate", maximum = 100)
         self.progressBar.place(relx = 0.5, rely = 0.55, anchor = CENTER)
         
         self.secv = StringVar()
-        self.seconds = 0
+        self.minv = StringVar()
+        self.lengthv = StringVar()
         
-        self.secondslabel = Label(self, textvariable = self.secv)
-        self.place(relx = 0.5, rely = 0.6, anchor = CENTER)
+        self.timerLabel = Label(self, textvariable = self.secv, bg = 'white', font = ('Andale Mono', 10), fg = 'gray27')
+        self.timerLabel.place(relx = 0.09, rely = 0.55, anchor = CENTER)
+        
+        self.lengthLabel = Label(self, textvariable = self.lengthv, bg = 'white', font = ('Andale Mono', 10), fg = 'gray27')
+        self.lengthLabel.place(relx = 0.91, rely = 0.55, anchor = CENTER)
+        
+        
+        
 		
         
     def backPress(self):
@@ -139,14 +148,10 @@ class nowPlaying(tk.Frame):
 			time.sleep(0.5)
 			k.press_keys([k.alt_key, k.tab_key])
 			
-			global songNumber
-			songNumber -= 1
-			
-			print "global: " + str(songNumber)
 			self.progressBar.stop()
-			self.after_cancel(self.songtimer)
-			print "cancelled timer"
-			self.editInfo()
+			self.after_cancel(self.count)
+			self.decreaseSongNumber()
+			self.secv.set('0:00')
 		
 		
     def playPress(self):
@@ -177,36 +182,27 @@ class nowPlaying(tk.Frame):
 			k.tap_key('p')
 			time.sleep(0.1)
 			k.press_keys([k.alt_key, k.tab_key])
-			#got to get timestamp...... somehow
-			#seperate after timer? to count maybe
-			#then once you get time, stop progressbar
-			#do some magic to find out postion you want step to be in then step song + restart timer
-			#then create new after for the rest 
-			#need play/pause bit
-			if paused == 0: #if playing
+			if paused == False: #if playing
 				#change icon
 				#cancel after_timer 
-				#pause progress bar
-				#store current time somewhere
-				self.after_cancel(self.pause)
+				self.after_cancel(self.count)
+				step_amount = ((1 - (self.seconds / self.length)) * 100)
+				print str(step_amount)
+				self.progressBar.stop()
 				print "paused"
-				paused = 1
-			elif paused == 1: #if paused
+				self.progressBar.step(step_amount) #step is a %
+				paused = True
+			elif paused == True: #if paused
 				#change icon
-				#get time through song 
-				#restart progress bar at delta, do some maths for that 
-				#create new timer using similar to IncreasesongNumber
-				#when timer hits length, increase song number
 				self.timer()
-				print "played"
-				paused = 0
+				self.progressBar.start(self.intervalLength)
+				print "playing"
+				paused = False
 				
 		
     def forwardPress(self):
 		
 		if started == 1:
-			global songNumber
-			songNumber += 1
 			
 			k = PyKeyboard()
 			print "forward button pressed"
@@ -216,63 +212,98 @@ class nowPlaying(tk.Frame):
 			time.sleep(0.5)
 			k.press_keys([k.alt_key, k.tab_key])
 			self.progressBar.stop()
-			#ok so here we want to cancel the previous increaseSongNumber
-			self.after_cancel(self.songtimer)
-			self.after_cancel(self.pause)
-			print "cancelled timer"
-			self.editInfo()
+			self.after_cancel(self.count)
+			self.increaseSongNumber()
+			self.secv.set('0:00')
 			
 			
 				
     def editInfo(self):
 		print "info edited"
 		global started
+		global paused
+		
 		song = getSong()# #get song name eg Just.mp3
 		pngstring = "/home/pi/Music/Albumart/" + song + ".png"
 		mp3string = "/home/pi/Music/Resources/" + song + ".mp3"
 		mp3 = MP3(mp3string)
-		intervalLength = int(mp3.info.length) * 10 #bars' currently a bit out
-		if started == 0:
-			self.length = int(mp3.info.length * 1000) + 2000 #add a few second delay for first song for mplayer init>
-			print "added extra time for start"
-		else: 
-			self.length = int(mp3.info.length * 1000) 
-		print self.length
+		
+		self.length = mp3.info.length
+		
+		self.intervalLength = int(self.length) * 10 #bars' currently a bit out
+		
 		title = mp3["TIT2"]
 		artist = mp3["TPE1"]
 		self.artistName.config(text = artist)
 		self.songTitle.config(text = title)
+		self.seconds = self.length
+		seconds = int(self.length%60)
+		minutes = int(self.length/60)
+		if seconds < 10:
+			self.lengthv.set(str(minutes) + ':0' + str(seconds))
+		else:
+			self.lengthv.set(str(minutes) + ':' + str(seconds))
+		
+		if started == 0:
+			self.seconds += 1
+		print self.seconds
+		
 		try:
 			photo2 = ImageTk.PhotoImage(file = pngstring)
 			self.switchbutton.config(image = photo2)
 			self.switchbutton.image = photo2
 		except:
 			print "srry"
-			#could put placeholder image here/or just sort art out tbh
-		self.progressBar.start(intervalLength)
-		global songNumber
-		self.songtimer = self.after(self.length, self.increaseSongNumber) #ok so this works for just looping through songs
-		self.seconds = 0
-		self.timer() #add in time left variable?
+			#could put placeholder image here/or just sort art out 
+			
+		try:
+			self.after_cancel(self.count)
+		except:
+			print "caught"
+		
+		#if not paused, used to not start timer on skip events + avoid double timer: 
+		if paused == False:
+		    self.timer()
+		    self.progressBar.start(self.intervalLength)
+		
 		print "after started"
 		
-    def increaseSongNumber(self): #getting done 4x
-		global songNumber #could replace these globals with selfs
-		songNumber += 1
-		print songNumber
-		print "increased song number"
-		self.progressBar.stop()
-		self.editInfo()
-			
-    def timer(self): #count up 
-		print "triggered"
-		self.secv.set(self.seconds) #make sure this is all placed right/seconds are good
-		print self.seconds
-		self.seconds += 1
-		print self.length / 1000
-		    self.pause = self.after(1000, self.timer) 
 		
+		
+    def timer(self): #could be nice to display on the bar or something
+		
+		seconds = int((self.length - self.seconds)%60)
+		minutes = int((self.length - self.seconds)/60)
+		if seconds < 10:
+			self.secv.set(str(minutes) + ':0' + str(seconds))
+		else:
+			self.secv.set(str(minutes) + ':' + str(seconds))
 			
+			
+		self.seconds -= 1
+		print self.seconds
+		if self.seconds < 1:
+			print "timer finished"
+			self.increaseSongNumber()
+		else:
+			print "timertime"
+			self.count = self.after(1000, self.timer)
+		
+		
+    def increaseSongNumber(self):
+		global songNumber
+		self.after_cancel(self.count)
+		songNumber += 1
+		print "song number = " + str(songNumber)
+		self.editInfo()
+		
+		
+    def decreaseSongNumber(self):
+		global songNumber
+		self.after_cancel(self.count)
+		songNumber -= 1
+		print "song number (decreased)= " + str(songNumber)
+		self.editInfo()
 		
 		
 
