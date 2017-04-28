@@ -101,6 +101,14 @@ class nowPlaying(tk.Frame):
         
         self.seconds = 0
         
+        playphoto = ImageTk.PhotoImage(file = "play_button.png")
+        forwardphoto = ImageTk.PhotoImage(file = "forwardarrow.png")
+        backwardphoto = ImageTk.PhotoImage(file = "backarrow.png")
+        
+        self.secv = StringVar()
+        self.minv = StringVar()
+        self.lengthv = StringVar()
+        
         self.configure(background = 'white')
 
         self.switchbutton = tk.Button(self, height = 100, width = 100, highlightthickness = 0, bd = 0, bg = 'white',
@@ -113,31 +121,37 @@ class nowPlaying(tk.Frame):
         self.artistName = Label(self, text = "Artist Name", bg = 'white', font = ('Andale Mono', 10), fg = 'gray27')
         self.artistName.place(relx = 0.5, rely = 0.46, anchor = CENTER)
         
-        backwards = tk.Button(self, height = 4, width = 5, command = self.backPress)
-        backwards.place(relx=0.26, rely=0.8, anchor= CENTER)
-        
-        play = tk.Button(self, height = 4, width = 5, command = self.playPress)
-        play.place(relx=0.5, rely=0.8, anchor= CENTER)
-        
-        forwards = tk.Button(self, height = 4, width = 5, command = self.forwardPress)
-        forwards.place(relx=0.74, rely=0.8, anchor= CENTER)
-        
         s = ttk.Style()
         s.theme_use('alt')
         s.configure("TProgressbar", foreground = 'white', background = 'white', troughcolor = 'gray27', thickness = 5,)
         self.progressBar = ttk.Progressbar(self, style = "TProgressbar", orient = "horizontal", 
                                length = 350, mode = "determinate", maximum = 100)
-        self.progressBar.place(relx = 0.5, rely = 0.55, anchor = CENTER)
-        
-        self.secv = StringVar()
-        self.minv = StringVar()
-        self.lengthv = StringVar()
+        self.progressBar.place(relx = 0.5, rely = 0.6, anchor = CENTER)
         
         self.timerLabel = Label(self, textvariable = self.secv, bg = 'white', font = ('Andale Mono', 10), fg = 'gray27')
-        self.timerLabel.place(relx = 0.09, rely = 0.55, anchor = CENTER)
+        self.timerLabel.place(relx = 0.09, rely = 0.6, anchor = CENTER)
         
         self.lengthLabel = Label(self, textvariable = self.lengthv, bg = 'white', font = ('Andale Mono', 10), fg = 'gray27')
-        self.lengthLabel.place(relx = 0.91, rely = 0.55, anchor = CENTER)
+        self.lengthLabel.place(relx = 0.91, rely = 0.6, anchor = CENTER)
+        
+        backwards = tk.Button(self, height = 70, width = 70, bg = 'white', activebackground = 'white', 
+                               highlightthickness = 0, bd = 0, command = self.backPress)
+        backwards.place(relx=0.35, rely=0.8, anchor= CENTER)
+        backwards.config(image = backwardphoto)
+        backwards.image = backwardphoto
+        
+        play = tk.Button(self, height = 70, width = 70, bg = 'white', activebackground = 'white', 
+                               highlightthickness = 0, bd = 0, command = self.playPress)
+        play.place(relx=0.5, rely=0.8, anchor= CENTER)
+        play.config(image = playphoto)
+        play.image = playphoto
+        
+        forwards = tk.Button(self, height = 70, width = 70, bg = 'white', activebackground = 'white', 
+                               highlightthickness = 0, bd = 0, command = self.forwardPress)
+        forwards.place(relx=0.65, rely=0.8, anchor= CENTER)
+        forwards.config(image = forwardphoto)
+        forwards.image = forwardphoto
+        
         
         
         
