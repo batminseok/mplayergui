@@ -1,4 +1,4 @@
-import Tkinter as tk   # python
+import Tkinter as tk   
 from Tkinter import *
 import ttk
 from pykeyboard import PyKeyboard
@@ -14,12 +14,16 @@ from mutagen.mp3 import *
 from mutagen.id3 import ID3
 import thread
 
-#subprocess.Popen("amixer set Digital 50%", shell = True) volume eventually 
 
 started = 0 #for keeping track of start or not
 songNumber = 0 #for keeping track of place in playlist
+selected = 0
+volume = 7
 paused = False
 
+volumeList = [0, 15, 40, 60, 75, 85, 95, 105, 110, 118, 120, 122, 128, 133, 137, 140, 
+                145, 148, 151, 154, 157, 159, 162]
+                
 songlist = []
 
 for file in os.listdir("/home/pi/Music/Resources"):
@@ -55,17 +59,39 @@ def callmplayer():#really fuck
 def dumbworkaround():
 	os.system('mplayer -slave -ao alsa:device=hw=0,0 -playlist playlist.m3u')
 
-    
 
+def onselect(evt):
+	print "hi!"
+	#kill mplayer 
+	#remake playlist with song x at the beginning
+	#start playing 
+	#invoke play button?
+	w = evt.widget
+	index = int(w.curselection()[0])
+	value = w.get(index) #song value
+	print value
+	global songlist
+	songlist.remove(value)
+	shufflist = songlist
+	shuffle(shufflist)
+	shufflist.insert(0, value)
+	print shufflist  
+	f = open("playlist.m3u", "w")
+	for i in shufflist:
+		f.write("/home/pi/Music/Resources/" + i + "\n")
+	f.close() #up to here works perfectly
+	global started
+	global selected
+	started = 0 #playlist hasnt started
+	selected = 1 #song has been selected
+    
+	
 class mp3App(tk.Tk):
 
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
 
-        # the container is where we'll stack a bunch of frames
-        # on top of each other, then the one we want visible
-        # will be raised above the others
-        self.resizable(width=False, height=False)
+        self.resizable(width=False, height=False) 
         self.geometry('{}x{}'.format(480,320))
         self.configure(background = 'white')
         #self.overrideredirect(1) #for getting rid of bar eventually
@@ -76,7 +102,7 @@ class mp3App(tk.Tk):
         
 
         self.frames = {}
-        for F in (nowPlaying, songList):
+        for F in (nowPlaying, songList, sleepBox, optionsBox):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -100,57 +126,84 @@ class nowPlaying(tk.Frame):
         self.controller = controller
         
         self.seconds = 0
+        #self.config(cursor = "none") #for getting rid of mouse eventually also
         
-        playphoto = ImageTk.PhotoImage(file = "play_button.png")
+        self.playphoto = ImageTk.PhotoImage(file = "play_button.png")
+        self.pausebutton = ImageTk.PhotoImage(file = "pause_button.png")
         forwardphoto = ImageTk.PhotoImage(file = "forwardarrow.png")
         backwardphoto = ImageTk.PhotoImage(file = "backarrow.png")
+        volupphoto = ImageTk.PhotoImage(file = "plus.png")
+        voldownphoto = ImageTk.PhotoImage(file = "minus.png")
         
         self.secv = StringVar()
         self.minv = StringVar()
         self.lengthv = StringVar()
         
         self.configure(background = 'white')
+        
+        self.sleepbutton = tk.Button(self, text="sleep", width = 5, height = 3, bg = '#A2D5AC', activebackground = '#A2D5AC', 
+                               highlightthickness = 0, bd = 0, fg = 'white', activeforeground = 'white', font = ('Andale Mono', 10,"bold"), command=lambda: controller.show_frame("sleepBox"))
+        self.sleepbutton.place(relx = 0.2, rely = 0.24, anchor = CENTER)
+        
+        
+        optionsButton = tk.Button(self, text="options", width = 5, height = 3, bg = '#A2D5AC', activebackground = '#A2D5AC', 
+                               highlightthickness = 0, bd = 0, fg = 'white', activeforeground = 'white', font = ('Andale Mono', 10,"bold"),
+                           command=lambda: controller.show_frame("optionsBox"))
+        optionsButton.place(relx = 0.8, rely = 0.24, anchor = CENTER)
 
-        self.switchbutton = tk.Button(self, height = 100, width = 100, highlightthickness = 0, bd = 0, bg = 'white',
+        self.switchbutton = tk.Button(self, height = 130, width = 130, highlightthickness = 0, bd = 0, bg = 'white',
                             activebackground = 'white', relief = SUNKEN, command=lambda: controller.show_frame("songList"))
-        self.switchbutton.place(relx=0.5, rely=0.20, anchor= CENTER)
+        self.switchbutton.place(relx=0.5, rely=0.24, anchor= CENTER)
         
         self.songTitle = Label(self, text = "Song Title", bg = 'white', font = ('Andale Mono', 10,"bold"), fg = 'gray27')
-        self.songTitle.place(relx = 0.5, rely = 0.4, anchor = CENTER)
+        self.songTitle.place(relx = 0.5, rely = 0.50, anchor = CENTER)
         
         self.artistName = Label(self, text = "Artist Name", bg = 'white', font = ('Andale Mono', 10), fg = 'gray27')
-        self.artistName.place(relx = 0.5, rely = 0.46, anchor = CENTER)
+        self.artistName.place(relx = 0.5, rely = 0.56, anchor = CENTER)
         
         s = ttk.Style()
         s.theme_use('alt')
-        s.configure("TProgressbar", foreground = 'white', background = 'white', troughcolor = 'gray27', thickness = 5,)
+        s.configure("TProgressbar", foreground = '#A2D5AC', background = '#A2D5AC', troughcolor = 'white', thickness = 5, relief = RAISED, bd = 0, highlightthickness = 0, highlightcolor = 'white')
         self.progressBar = ttk.Progressbar(self, style = "TProgressbar", orient = "horizontal", 
                                length = 350, mode = "determinate", maximum = 100)
-        self.progressBar.place(relx = 0.5, rely = 0.6, anchor = CENTER)
+        self.progressBar.place(relx = 0.5, rely = 0.64, anchor = CENTER)
+        self.progressBar.focus()
         
         self.timerLabel = Label(self, textvariable = self.secv, bg = 'white', font = ('Andale Mono', 10), fg = 'gray27')
-        self.timerLabel.place(relx = 0.09, rely = 0.6, anchor = CENTER)
+        self.timerLabel.place(relx = 0.09, rely = 0.64, anchor = CENTER)
         
         self.lengthLabel = Label(self, textvariable = self.lengthv, bg = 'white', font = ('Andale Mono', 10), fg = 'gray27')
-        self.lengthLabel.place(relx = 0.91, rely = 0.6, anchor = CENTER)
+        self.lengthLabel.place(relx = 0.91, rely = 0.64, anchor = CENTER)
         
         backwards = tk.Button(self, height = 70, width = 70, bg = 'white', activebackground = 'white', 
                                highlightthickness = 0, bd = 0, command = self.backPress)
-        backwards.place(relx=0.35, rely=0.8, anchor= CENTER)
+        backwards.place(relx=0.35, rely=0.81, anchor= CENTER)
         backwards.config(image = backwardphoto)
         backwards.image = backwardphoto
         
-        play = tk.Button(self, height = 70, width = 70, bg = 'white', activebackground = 'white', 
+        self.play = tk.Button(self, height = 70, width = 70, bg = 'white', activebackground = 'white', 
                                highlightthickness = 0, bd = 0, command = self.playPress)
-        play.place(relx=0.5, rely=0.8, anchor= CENTER)
-        play.config(image = playphoto)
-        play.image = playphoto
+        self.play.place(relx=0.5, rely=0.81, anchor= CENTER)
+        self.play.config(image = self.playphoto)
+        self.play.image = self.playphoto
         
         forwards = tk.Button(self, height = 70, width = 70, bg = 'white', activebackground = 'white', 
                                highlightthickness = 0, bd = 0, command = self.forwardPress)
-        forwards.place(relx=0.65, rely=0.8, anchor= CENTER)
+        forwards.place(relx=0.65, rely=0.81, anchor= CENTER)
         forwards.config(image = forwardphoto)
         forwards.image = forwardphoto
+        
+        volumeUp = tk.Button(self, height = 70, width = 70, bg = 'white', activebackground = 'white', 
+                               highlightthickness = 0, bd = 0, command = self.volumeUpPress)
+        volumeUp.place(relx = 0.8, rely = 0.81, anchor = CENTER)
+        volumeUp.config(image = volupphoto)
+        volumeUp.image = volupphoto
+        
+        volumeDown = tk.Button(self, height = 70, width = 70, bg = 'white', activebackground = 'white', 
+                               highlightthickness = 0, bd = 0, command = self.volumeDownPress)
+        volumeDown.place(relx = 0.20, rely = 0.81, anchor = CENTER)
+        volumeDown.config(image = voldownphoto)
+        volumeDown.image = voldownphoto
         
         
         
@@ -170,21 +223,34 @@ class nowPlaying(tk.Frame):
             self.decreaseSongNumber()
             self.secv.set('0:00')
         
-        
     def playPress(self):
         
         global started
-        global songNumber
+        global songNumber 
+        global selected
         k = PyKeyboard()
+        print "started = " + str(started)
         
         if started == 0: #start tunes
 			
-            createPlaylist()
-            callmplayer()
-            
-            self.editInfo() #runs main looping through music loop
-            
-            started = 1
+			#ok so if a new song has been selected 
+			#playlist is already created
+			#kill mplayer
+			#set songnumber too 
+			os.system("sudo killall -v mplayer")
+			if selected == 0:
+				createPlaylist()
+			else:
+				songNumber = 0
+				#reset progress bar
+				self.progressBar.stop()
+				selected = 0
+			self.play.config(image = self.pausebutton)
+			self.play.image = self.pausebutton
+			callmplayer()
+			os.system("amixer set Digital 100")
+			self.editInfo() #runs main looping through music loop
+			started = 1
             
         elif started == 1: #song is playing, button pauses
             global paused
@@ -193,8 +259,10 @@ class nowPlaying(tk.Frame):
             if paused == False: #if playing
                 os.system("bash mplayerbash.sh key_down_event 112")
                 print "bash called"
-                #change icon
-                #cancel after_timer 
+                
+                pausebutton = ImageTk.PhotoImage(file = "play_button.png")
+                self.play.config(image = pausebutton)
+                self.play.image = pausebutton
                 self.after_cancel(self.count)
                 step_amount = ((1 - (self.seconds / self.length)) * 100)
                 print str(step_amount)
@@ -205,7 +273,9 @@ class nowPlaying(tk.Frame):
             else:
                 os.system("bash mplayerbash.sh key_down_event 112")
                 print "bash called"
-                #change icon
+                pausebutton = ImageTk.PhotoImage(file = "pause_button.png")
+                self.play.config(image = pausebutton)
+                self.play.image = pausebutton
                 self.timer()
                 self.progressBar.start(self.intervalLength)
                 print "playing"
@@ -311,22 +381,118 @@ class nowPlaying(tk.Frame):
         print "song number (decreased)= " + str(songNumber)
         self.editInfo()
         
+        
+    def volumeUpPress(self):
+		global volume
+		global volumeList
+		if volume < len(volumeList):
+		    volume += 1
+		#else if volume > len(volumeList):
+		#	
+		setVolume = volumeList[volume]
+		print setVolume
+		volstring = "amixer set Digital " + str(setVolume)
+		os.system(volstring)
+        
+    def volumeDownPress(self):
+		global volume
+		if volume > 0:
+		    volume -= 1
+		global volumeList
+		setVolume = volumeList[volume]
+		print setVolume
+		volstring = "amixer set Digital " + str(setVolume)
+		os.system(volstring)
    	
         
         
 
 
-class songList(tk.Frame):
+class songList(tk.Frame): #should have another frame for 'turning off' the screen
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        button = tk.Button(self, text="back",
+        
+        self.configure(background = 'white')
+        
+        backButton = tk.Button(self, text="back", width = 100, height = 3, bg = '#A2D5AC', activebackground = '#A2D5AC', 
+                               highlightthickness = 0, bd = 0, fg = 'white', activeforeground = 'white', font = ('Andale Mono', 10,"bold"),
                            command=lambda: controller.show_frame("nowPlaying"))
-        button.pack()
+        backButton.pack()
+        
+        
+        scrollBar = Scrollbar(self, bg = '#A2D5AC', troughcolor = 'white', bd = 0, width = 50, relief = FLAT, activebackground = '#A2D5AC')
+        scrollBar.pack(side=RIGHT, fill=Y)
+        self.listBox = Listbox(self, selectmode = SINGLE, width = 60, height = 10, borderwidth = 0, fg = 'gray27',
+                                  bg = 'white', font = ('Andale Mono', 12), highlightcolor = 'white', relief = FLAT, selectbackground = '#A2D5AC')
+        self.listBox.pack(side = LEFT, fill = Y)
+        scrollBar.config(command = self.listBox.yview)
+        self.listBox.config(yscrollcommand=scrollBar.set)
+        self.listBox.bind('<<ListboxSelect>>', onselect) #alright so on selection of a song, onselect
+        songlist.sort()
+        for item in songlist:
+			#do some string manip here to add artist as well 
+            self.listBox.insert(END, item)
+            
+            
+class sleepBox(tk.Frame):
+	def __init__(self, parent, controller):
+		tk.Frame.__init__(self, parent)
+		self.controller = controller
+		
+		button = tk.Button(self, width = 100, height = 100, bg = 'black', relief = FLAT, activebackground = 'black', fg = 'black', command=lambda: controller.show_frame("nowPlaying"))
+		button.pack()
+
+class optionsBox(tk.Frame):
+	def __init__(self, parent, controller):
+		tk.Frame.__init__(self, parent)
+		self.controller = controller
+		
+		
+		backButton = tk.Button(self, width = 5, height = 5, bg = '#A2D5AC', activebackground = '#A2D5AC', highlightthickness =0, bd =0,
+		                              fg = 'white', activeforeground = 'white', font = ('Andale Mono', 10, "bold"), text = "back",
+		                              command=lambda: controller.show_frame("nowPlaying"))
+		backButton.pack()    
+		                          
+		speakerButton = tk.Button(self, width = 5, height = 5, bg = '#A2D5AC', activebackground = '#A2D5AC', highlightthickness =0, bd =0,
+		                              fg = 'white', activeforeground = 'white', font = ('Andale Mono', 10, "bold"), text = "speaker",
+		                              command = self.speakerButtonPress)
+		speakerButton.pack()
+		
+		quitButton = tk.Button(self, width = 5, height = 5, bg = '#A2D5AC', activebackground = '#A2D5AC', highlightthickness =0, bd =0,
+		                              fg = 'white', activeforeground = 'white', font = ('Andale Mono', 10, "bold"), text = "quit",
+		                              command = self.quitButtonPress)
+		quitButton.pack()
+		
+		
+		
+	def speakerButtonPress(self):
+		addedVolume = [164, 166, 169, 171, 173, 175, 177, 
+                179, 180, 182, 184, 185, 187, 189, 190, 191, 193, 194, 196, 198, 199, 
+                200, 202, 204, 206]
+		print "speaker button"
+		global volumeList
+		global volume
+		if len(volumeList) == 23:
+			volumeList = volumeList + addedVolume
+			print volumeList
+		else:
+			volumeList = list(set(volumeList) - set(addedVolume))
+			volumeList.sort()
+			volume = 7
+			os.system("amixer set Digital 100")
+			print volumeList
+		
+		
+	def quitButtonPress(self):
+		print "quit button"
+		os.system("sudo killall -v mplayer")
+		app.destroy()
+		
+	
 
 
 
-if __name__ == "__main__":
-    app = mp3App()
-    app.mainloop()
+app = mp3App()
+app.mainloop()
