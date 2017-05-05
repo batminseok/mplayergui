@@ -6,7 +6,10 @@ import subprocess
 
 #f = MP3("/home/pi/Music/Resources/Just.mp3") #nice n sidify
 
-#print mutagen.File("/home/pi/Music/Resources/Just.mp3").keys() 
+print mutagen.File("/home/pi/Music/Resources/Just.mp3").keys() 
+
+audio = MP3("/home/pi/Music/Resources/Just.mp3")
+print audio.info.length
 
 #try: 
 #	artwork = f["APIC:thumbnail"].data #ok so sort depending on wether theyre musicbrainz or not 
@@ -28,15 +31,16 @@ import subprocess
 #print f["TIT2"] #title
 #print f["TPE1"] #artist
 
-
 failist = []
 
 songlist = []
+
 
 for file in os.listdir("/home/pi/Music/Resources"):
     if file.endswith(".mp3"):
         songlist.append(file)
 
+"""
 for i, line in enumerate(songlist): #check song info
 	formatted = line.rstrip()
 	filename = formatted.replace('.mp3', '')
@@ -49,7 +53,7 @@ for i, line in enumerate(songlist): #check song info
 		print "FAILED: " + formatted
 		failist.append(formatted)
 		
-print failist
+print failist """
 
 
 for i, line in enumerate(songlist): #create pngs
@@ -60,8 +64,6 @@ for i, line in enumerate(songlist): #create pngs
 	picfilename = filename + '.png'
 	mp3 = MP3("/home/pi/Music/Resources/" + formatted)
 	total = 0
-	substring = "convert " + filename + ".png -resize 100x100 " + filename + ".gif"
-	print substring
 	try: 
 		artwork = mp3["APIC:thumbnail"].data #ok so sort depending on wether theyre musicbrainz or not 
 		with open(picfilename, 'wb') as img:
