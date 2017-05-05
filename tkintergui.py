@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import Tkinter as tk   
 from Tkinter import *
 import ttk
@@ -68,7 +70,7 @@ def onselect(evt):
 	#invoke play button?
 	w = evt.widget
 	index = int(w.curselection()[0])
-	value = w.get(index) #song value
+	value = w.get(index) + ".mp3" #song value
 	print value
 	global songlist
 	songlist.remove(value)
@@ -94,7 +96,7 @@ class mp3App(tk.Tk):
         self.resizable(width=False, height=False) 
         self.geometry('{}x{}'.format(480,320))
         self.configure(background = 'white')
-        #self.overrideredirect(1) #for getting rid of bar eventually
+        self.overrideredirect(1) #for getting rid of bar eventually
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
         container.grid_rowconfigure(0, weight=1)
@@ -106,10 +108,6 @@ class mp3App(tk.Tk):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
-
-            # put all of the pages in the same location;
-            # the one on the top of the stacking order
-            # will be the one that is visible.
             frame.grid(row=0, column=0, sticky="nsew")
 
         self.show_frame("nowPlaying")
@@ -126,14 +124,15 @@ class nowPlaying(tk.Frame):
         self.controller = controller
         
         self.seconds = 0
-        #self.config(cursor = "none") #for getting rid of mouse eventually also
+        self.config(cursor = "none") #for getting rid of mouse eventually also
         
-        self.playphoto = ImageTk.PhotoImage(file = "play_button.png")
-        self.pausebutton = ImageTk.PhotoImage(file = "pause_button.png")
-        forwardphoto = ImageTk.PhotoImage(file = "forwardarrow.png")
-        backwardphoto = ImageTk.PhotoImage(file = "backarrow.png")
-        volupphoto = ImageTk.PhotoImage(file = "plus.png")
-        voldownphoto = ImageTk.PhotoImage(file = "minus.png")
+        self.playphoto = ImageTk.PhotoImage(file = "/home/pi/Music/play_button.png")
+        self.pausebutton = ImageTk.PhotoImage(file = "/home/pi/Music/pause_button.png")
+        self.missingartwork = ImageTk.PhotoImage(file = "/home/pi/Music/missing_artwork.png")
+        forwardphoto = ImageTk.PhotoImage(file = "/home/pi/Music/forwardarrow.png")
+        backwardphoto = ImageTk.PhotoImage(file = "/home/pi/Music/backarrow.png")
+        volupphoto = ImageTk.PhotoImage(file = "/home/pi/Music/plus.png")
+        voldownphoto = ImageTk.PhotoImage(file = "/home/pi/Music/minus.png")
         
         self.secv = StringVar()
         self.minv = StringVar()
@@ -154,6 +153,8 @@ class nowPlaying(tk.Frame):
         self.switchbutton = tk.Button(self, height = 130, width = 130, highlightthickness = 0, bd = 0, bg = 'white',
                             activebackground = 'white', relief = SUNKEN, command=lambda: controller.show_frame("songList"))
         self.switchbutton.place(relx=0.5, rely=0.24, anchor= CENTER)
+        self.switchbutton.config(image = self.missingartwork)
+        self.switchbutton.image = self.missingartwork
         
         self.songTitle = Label(self, text = "Song Title", bg = 'white', font = ('Andale Mono', 10,"bold"), fg = 'gray27')
         self.songTitle.place(relx = 0.5, rely = 0.50, anchor = CENTER)
@@ -216,7 +217,7 @@ class nowPlaying(tk.Frame):
         
         if started == 1:
             print "back button pressed"
-            os.system("bash mplayerbash.sh key_down_event 60")
+            os.system("bash /home/pi/Music/mplayerbash.sh key_down_event 60")
             
             self.progressBar.stop()
             self.after_cancel(self.count)
@@ -230,6 +231,7 @@ class nowPlaying(tk.Frame):
         global selected
         k = PyKeyboard()
         print "started = " + str(started)
+        global paused
         
         if started == 0: #start tunes
 			
@@ -244,6 +246,7 @@ class nowPlaying(tk.Frame):
 				songNumber = 0
 				#reset progress bar
 				self.progressBar.stop()
+				paused = False
 				selected = 0
 			self.play.config(image = self.pausebutton)
 			self.play.image = self.pausebutton
@@ -257,10 +260,10 @@ class nowPlaying(tk.Frame):
             print "playing"
             
             if paused == False: #if playing
-                os.system("bash mplayerbash.sh key_down_event 112")
+                os.system("bash /home/pi/Music/mplayerbash.sh key_down_event 112")
                 print "bash called"
                 
-                pausebutton = ImageTk.PhotoImage(file = "play_button.png")
+                pausebutton = ImageTk.PhotoImage(file = "/home/pi/Music/play_button.png")
                 self.play.config(image = pausebutton)
                 self.play.image = pausebutton
                 self.after_cancel(self.count)
@@ -271,9 +274,9 @@ class nowPlaying(tk.Frame):
                 self.progressBar.step(step_amount) #step is a %
                 paused = True
             else:
-                os.system("bash mplayerbash.sh key_down_event 112")
+                os.system("bash /home/pi/Music/mplayerbash.sh key_down_event 112")
                 print "bash called"
-                pausebutton = ImageTk.PhotoImage(file = "pause_button.png")
+                pausebutton = ImageTk.PhotoImage(file = "/home/pi/Music/pause_button.png")
                 self.play.config(image = pausebutton)
                 self.play.image = pausebutton
                 self.timer()
@@ -288,7 +291,7 @@ class nowPlaying(tk.Frame):
             
             k = PyKeyboard()
             print "forward button pressed"
-            os.system("bash mplayerbash.sh key_down_event 62")
+            os.system("bash /home/pi/Music/mplayerbash.sh key_down_event 62")
             self.progressBar.stop()
             self.after_cancel(self.count)
             self.increaseSongNumber()
@@ -332,7 +335,8 @@ class nowPlaying(tk.Frame):
             self.switchbutton.image = photo2
         except:
             print "srry"
-            #could put placeholder image here/or just sort art out 
+            self.switchbutton.config(image = self.missingartwork)
+            self.switchbutton.image = self.missingartwork
             
         try:
             self.after_cancel(self.count)
@@ -433,13 +437,17 @@ class songList(tk.Frame): #should have another frame for 'turning off' the scree
         songlist.sort()
         for item in songlist:
 			#do some string manip here to add artist as well 
-            self.listBox.insert(END, item)
+			#still todo
+			#need some way of retaining info in box
+			edititem = item.replace(".mp3", "")
+			self.listBox.insert(END, edititem)
             
             
 class sleepBox(tk.Frame):
 	def __init__(self, parent, controller):
 		tk.Frame.__init__(self, parent)
 		self.controller = controller
+		self.configure(background = 'black')
 		
 		button = tk.Button(self, width = 100, height = 100, bg = 'black', relief = FLAT, activebackground = 'black', fg = 'black', command=lambda: controller.show_frame("nowPlaying"))
 		button.pack()
@@ -448,22 +456,23 @@ class optionsBox(tk.Frame):
 	def __init__(self, parent, controller):
 		tk.Frame.__init__(self, parent)
 		self.controller = controller
+		self.configure(background = 'white')
 		
 		
-		backButton = tk.Button(self, width = 5, height = 5, bg = '#A2D5AC', activebackground = '#A2D5AC', highlightthickness =0, bd =0,
+		backButton = tk.Button(self, width = 100, height = 3, bg = '#A2D5AC', activebackground = '#A2D5AC', highlightthickness =0, bd =0,
 		                              fg = 'white', activeforeground = 'white', font = ('Andale Mono', 10, "bold"), text = "back",
 		                              command=lambda: controller.show_frame("nowPlaying"))
 		backButton.pack()    
 		                          
-		speakerButton = tk.Button(self, width = 5, height = 5, bg = '#A2D5AC', activebackground = '#A2D5AC', highlightthickness =0, bd =0,
+		speakerButton = tk.Button(self, width = 10, height = 5, bg = '#A2D5AC', activebackground = '#A2D5AC', highlightthickness =0, bd =0,
 		                              fg = 'white', activeforeground = 'white', font = ('Andale Mono', 10, "bold"), text = "speaker",
 		                              command = self.speakerButtonPress)
-		speakerButton.pack()
+		speakerButton.place(relx = 0.3, rely = 0.5, anchor = CENTER)
 		
-		quitButton = tk.Button(self, width = 5, height = 5, bg = '#A2D5AC', activebackground = '#A2D5AC', highlightthickness =0, bd =0,
+		quitButton = tk.Button(self, width = 10, height = 5, bg = '#A2D5AC', activebackground = '#A2D5AC', highlightthickness =0, bd =0,
 		                              fg = 'white', activeforeground = 'white', font = ('Andale Mono', 10, "bold"), text = "quit",
 		                              command = self.quitButtonPress)
-		quitButton.pack()
+		quitButton.place(relx = 0.7, rely = 0.5, anchor = CENTER)
 		
 		
 		
@@ -492,7 +501,7 @@ class optionsBox(tk.Frame):
 		
 	
 
-
-
+xinput = "xinput set-prop 6 \"Coordinate Transformation Matrix\" 0 -1 1 -1 0 1 0 0 1"
+os.system(xinput)
 app = mp3App()
 app.mainloop()
